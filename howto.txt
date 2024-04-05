@@ -1,0 +1,72 @@
+# howto.txt
+
+## Install Terraform
+https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
+
+## Create a project (anywhere in your homedir) for Development
+mkdir -r ~/Projects/terraform/kvm/dev && cd ~/Projects/terraform/kvm/dev
+# mkdir -r ~/Projects/terraform/kvm/prd && cd ~/Projects/terraform/kvm/prd
+
+## Create keypair
+# ssh-keygen -f ~/.ssh/keyname -C keyname
+
+## Check Libvirt readyness
+sudo systemctl status libvirtd
+
+## Project location
+cd ~/Projects/terraform/kvm/dev
+
+## Initialize the project
+terraform init
+
+## Reformat code and validate the project
+terraform fmt
+terraform validate
+
+## Inspect plan, you see all initial steps involved
+terraform plan
+
+## Create plan & Provision infrastructure
+terraform plan -target="libvirt_network.cidr" -out=plan-network
+terraform apply "plan-network"
+terraform plan -target="libvirt_pool.datastore" -out=plan-datastore
+terraform apply "plan-datastore"
+
+## Create plan & Provision machine
+terraform plan -target="libvirt_domain.machine" -out=plan-machine
+terraform apply "plan-machine"
+
+## Refresh the state
+terraform refresh
+
+## Inspect the project
+terraform show
+
+## Verify the provisioning
+sudo virsh list
+
+## Get the IP
+sudo virsh net-dhcp-leases dev
+
+#### Delete the machine
+terraform plan -destroy -target="libvirt_domain.machine" -target="libvirt_volume.disk" -target="libvirt_cloudinit_disk.commoninit" -out=plan-machine
+terraform apply "plan-machine"
+
+#### Delete the infrastructure
+terraform plan -destroy -target="libvirt_pool.datastore" -out=plan-datastore
+terraform apply "plan-datastore"
+terraform plan -destroy  -target="libvirt_network.cidr" -out=plan-network
+terraform apply "plan-network"
+
+## Refresh the state
+terraform refresh
+
+#### Cleanup the project
+rm -rf terra* .terra* plan-*
+sudo rm -rf /root/.terraform.d
+sudo systemctl stop libvirtd
+
+## Reference:
+## https://registry.terraform.io/providers/multani/libvirt
+# https://github.com/MonolithProjects/terraform-libvirt-vm
+# https://www.digitalocean.com/community/tutorials/how-to-use-cloud-config-for-your-initial-server-setup
